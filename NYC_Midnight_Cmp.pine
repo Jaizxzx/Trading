@@ -1,0 +1,51 @@
+//@version=5
+strategy("NY Midnight vs NY Midnight+5 Comparison", overlay=true, calc_on_every_tick=true)
+
+// Input parameters for the specific date
+i_year = input.int(2024, title="Year", minval=2000, maxval=2100)
+i_month = input.int(7, title="Month", minval=1, maxval=12)
+i_day = input.int(25, title="Day", minval=1, maxval=31)
+
+// Function to get NY time
+nyTime() =>
+    utc_offset = -4 * 60 * 60 * 1000  // 4 hours offset for EDT, adjust as needed
+    timestamp(year, month, dayofmonth, hour, minute, second) + utc_offset
+
+// Check if current bar is on the specified date
+isSpecifiedDate = year(nyTime()) == i_year and month(nyTime()) == i_month and dayofmonth(nyTime()) == i_day
+
+// Variables to store candle data
+var float midnight_open = na, var float midnight_high = na, var float midnight_low = na, var float midnight_close = na
+var float midnight_plus5_open = na, var float midnight_plus5_high = na, var float midnight_plus5_low = na, var float midnight_plus5_close = na
+var bool canTrade = false, var bool orderPlaced = false
+
+// Capture NY midnight candle on specified date
+if isSpecifiedDate and hour(nyTime()) == 0 and minute(nyTime()) == 0
+    midnight_open := open, midnight_high := high, midnight_low := low, midnight_close := close
+    canTrade := false, orderPlaced := false
+
+// Capture NY midnight+5 candle and compare on specified date
+if isSpecifiedDate and hour(nyTime()) == 0 and minute(nyTime()) == 5
+    midnight_plus5_open := open, midnight_plus5_high := high, midnight_plus5_low := low, midnight_plus5_close := close
+    canTrade := true
+
+// Trading logic on specified date
+if isSpecifiedDate and canTrade and not orderPlaced
+    if midnight_plus5_close > midnight_close
+        strategy.entry("Long", strategy.long)
+        orderPlaced := true
+    else if midnight_plus5_close < midnight_close
+        strategy.entry("Short", strategy.short)
+        orderPlaced := true
+
+// Exit positions at the end of the specified day
+if isSpecifiedDate and hour(nyTime()) == 23 and minute(nyTime()) == 59
+    strategy.close_all()
+
+// Display comparison results on specified date
+if barstate.islast and isSpecifiedDate
+    label.new(x=bar_index, y=high, text="NY Midnight vs Midnight+5 on " + str.tostring(i_year) + "-" + str.tostring(i_month, "00") + "-" + str.tostring(i_day, "00") + ":\nOpen Diff: " + str.tostring(midnight_plus5_open - midnight_open, "#.##") + "\nHigh Diff: " + str.tostring(midnight_plus5_high - midnight_high, "#.##") + "\nLow Diff: " + str.tostring(midnight_plus5_low - midnight_low, "#.##") + "\nClose Diff: " + str.tostring(midnight_plus5_close - midnight_close, "#.##"), color=color.blue, textcolor=color.white, style=label.style_label_down)
+
+// Plotting for visualization on specified date
+plot(isSpecifiedDate and hour(nyTime()) == 0 and minute(nyTime()) == 0 ? midnight_close : na, color=color.blue, style=plot.style_circles, title="Midnight Close")
+plot(isSpecifiedDate and hour(nyTime()) == 0 and minute(nyTime()) == 5 ? midnight_plus5_close : na, color=color.yellow, style=plot.style_circles, title="Midnight+5 Close")
