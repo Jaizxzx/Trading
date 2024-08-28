@@ -18,14 +18,14 @@ isInOvernightSession() =>
     ny_hour = hour(nyTime())
     ny_minute = minute(nyTime())
     currentTime = ny_hour * 100 + ny_minute
-    (currentTime >= 1700 or currentTime < 800)
+    (currentTime >= 1300 or currentTime < 400)
 
 // Function to check if current time is in the 8:30-10:00 trading session
 isInTradingSession() =>
     ny_hour = hour(nyTime())
     ny_minute = minute(nyTime())
     currentTime = ny_hour * 100 + ny_minute
-    (currentTime >= 830 and currentTime < 1000)
+    (currentTime >= 430 and currentTime < 600)
 
 // Variables to store overnight session high and low
 var float overnightHigh = na
@@ -39,10 +39,11 @@ var float tradingSessionHigh = na
 var float tradingSessionLow = na
 
 // Get the high of the candle 10 minutes ago
-tenMinutesAgoHigh = request.security(syminfo.tickerid, "10", high[1], lookahead=barmerge.lookahead_off)
+tenMinutesAgoHigh = high[2]
+tenMinutesAgolow = low[2]
 
 // Start of overnight session (17:00 NY time)
-if hour(nyTime()) == 17 and minute(nyTime()) == 0 and isInDateRange()
+if hour(nyTime()) == 13 and minute(nyTime()) == 0 and isInDateRange()
     sessionCount += 1
     overnightHigh := high
     overnightLow := low
@@ -57,7 +58,7 @@ if isInOvernightSession() and isInDateRange()
     overnightLow := math.min(nz(overnightLow, low), low)
 
 // End of overnight session (08:00 NY time)
-if hour(nyTime()) == 8 and minute(nyTime()) == 0 and isInDateRange()
+if hour(nyTime()) == 4 and minute(nyTime()) == 0 and isInDateRange()
     overnightPips := (overnightHigh - overnightLow) * 10000
     
     label.new(bar_index, overnightHigh, "H: " + str.tostring(overnightHigh, "#.#####"), 
@@ -72,9 +73,18 @@ if hour(nyTime()) == 8 and minute(nyTime()) == 0 and isInDateRange()
               style=label.style_label_left, size=size.normal)
 
 // Start of trading session (8:30 NY time)
-if hour(nyTime()) == 8 and minute(nyTime()) == 30 and isInDateRange()
+if hour(nyTime()) == 4 and minute(nyTime()) == 30 and isInDateRange()
     tradingSessionHigh := high
     tradingSessionLow := low
+
+// Variables to control trade entry
+var bool longTaken = false
+var bool shortTaken = false
+
+// Reset trade flags at the start of each trading session
+if hour(nyTime()) == 4 and minute(nyTime()) == 30 and isInDateRange()
+    longTaken := false
+    shortTaken := false
 
 // Update trading session high and low and check for FVG
 if isInTradingSession() and isInDateRange()
@@ -82,11 +92,19 @@ if isInTradingSession() and isInDateRange()
     tradingSessionLow := math.min(nz(tradingSessionLow, low), low)
     
     // FVG condition and trading logic
-    if low - tenMinutesAgoHigh > 0 and not tradePlaced and overnightPips > 23
+    if low - tenMinutesAgoHigh > 0 and not longTaken and overnightPips > 23
         strategy.entry("Long", strategy.long)
         strategy.exit("TP Long", "Long", profit = 15 * syminfo.mintick * 10000, loss = 8 * syminfo.mintick * 10000)
-        tradePlaced := true
+        longTaken := true
         label.new(bar_index, low, "FVG & BUY", color=color.green, textcolor=color.white, style=label.style_label_up, size=size.normal)
+        label.new(bar_index[2], high[2], "FVG START", color=color.green, textcolor=color.white, style=label.style_label_down, size=size.normal)
+    
+    else if high - tenMinutesAgolow < 0 and longTaken and not shortTaken and overnightPips > 23
+        strategy.entry("Short", strategy.short)
+        strategy.exit("TP Short", "Short", profit = 15 * syminfo.mintick * 10000, loss = 8 * syminfo.mintick * 10000)
+        shortTaken := true
+        label.new(bar_index, high, "FVG & SELL", color=color.red, textcolor=color.white, style=label.style_label_down, size=size.normal)
+        label.new(bar_index[2], low[2], "FVG START", color=color.red, textcolor=color.white, style=label.style_label_up, size=size.normal)
 
 // Plot overnight session high and low
 plot(isInOvernightSession() ? overnightHigh : na, color=color.green, linewidth=2, title="Overnight High")
