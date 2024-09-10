@@ -1,55 +1,116 @@
-import csv
-import json
-import os
-from datetime import datetime
-
-import pandas as pd
+import time
+from datetime import datetime, timedelta
+import argparse
 from binance.client import Client
+from binance.enums import *
 
-# init
-api_key = '' # Api Key 
-api_secret = '' #Secret Access key
-
+# Initialize Binance client
+api_key = 'pr5GIjVdQbms8xLJhjB4aOD1FSuPTKqoy8syXf7cVYYSA0r31rgJ9Fz9nr7ok0Bv'
+api_secret = 'DDRDDTHqHAQQTX5D5vNxBxnOlU1RvjS81otZUPUAgUaSZw2i32uwOJ6ACYqTzxcR'
 client = Client(api_key, api_secret)
 
-## main
+# Trading parameters
+symbol = 'BTCUSDT'
+timeframe = Client.KLINE_INTERVAL_5MINUTE
 
-# valid intervals - 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M
+# Date range configuration
+# Set these variables to use a fixed date range in the code
+# Format: 'YYYY-MM-DD'
+# Set to None to use command-line arguments instead
+START_DATE = '2024-09-08'
+END_DATE = '2024-09-09'
 
-# Set specific start date and time
-start_date = '03-09-2024 00:00:00'  # format: dd-mm-yyyy hh:mm:ss
-start_timestamp = int(datetime.strptime(start_date, '%d-%m-%Y %H:%M:%S').timestamp() * 1000)
+def parse_date(date_str):
+    return datetime.strptime(date_str, "%Y-%m-%d")
 
-# request historical candle (or klines) data
-bars = client.get_historical_klines('BTCUSDT', '5m', start_timestamp, limit=100)
-# print(bars)
+def get_candles(start_time, end_time=None):
+    klines = client.get_klines(
+        symbol=symbol,
+        interval=timeframe,
+        startTime=int(start_time.timestamp() * 1000),
+        endTime=int(end_time.timestamp() * 1000) if end_time else None,
+        limit=1000
+    )
+    return [
+        {
+            'open_time': kline[0],
+            'open': float(kline[1]),
+            'high': float(kline[2]),
+            'low': float(kline[3]),
+            'close': float(kline[4])
+        }
+        for kline in klines
+    ]
 
-# Convert timestamp to readable format
-for bar in bars:
-    bar[0] = datetime.fromtimestamp(bar[0] / 1000).strftime('%d%m%Y %H%M%S')
-'''
-# option 1 - save to file using json method - this will retain Python format (list of lists)
-with open('btc_bars.json', 'w') as e:
-    json.dump(bars, e)
-'''
-'''# option 2 - save as CSV file using the csv writer library
-with open('btc_bars.csv', 'w', newline='') as f:
-    wr = csv.writer(f)
-    for line in bars:
-        wr.writerow(line)
+def print_ohlc_and_signal(candle, signal):
+    print(f"Time: {datetime.fromtimestamp(candle['open_time']/1000)}")
+    print(f"Open: {candle['open']}")
+    print(f"High: {candle['high']}")
+    print(f"Low: {candle['low']}")
+    print(f"Close: {candle['close']}")
+    print(f"Signal: {signal}")
+    print("------------------------")
 
-# option 3 - save as CSV file without using a library. Shorten to just date, open, high, low, close
-with open('btcusdt_ohlc.csv', 'w') as d:
-    for line in bars:
-        d.write(f'{line[0]}, {line[1]}, {line[2]}, {line[3]}, {line[4]}\n')'''
+def analyze_candles(candles):
+    for i in range(1, len(candles)):
+        first_candle = candles[i-1]
+        second_candle = candles[i]
+        
+        if second_candle['close'] > first_candle['close']:
+            stop_loss = first_candle['open'] * 0.999
+            stop_loss_distance = second_candle['close'] - stop_loss
+            take_profit = second_candle['close'] + (2 * stop_loss_distance)
+            
+            print_ohlc_and_signal(second_candle, "BUY")
+            print(f"Stop Loss: {stop_loss}")
+            print(f"Take Profit: {take_profit}")
+            print("------------------------")
+        elif second_candle['close'] < first_candle['close']:
+            stop_loss = first_candle['open'] * 1.001
+            stop_loss_distance = stop_loss - second_candle['close']
+            take_profit = second_candle['close'] - (2 * stop_loss_distance)
+            
+            print_ohlc_and_signal(second_candle, "SELL")
+            print(f"Stop Loss: {stop_loss}")
+            print(f"Take Profit: {take_profit}")
+            print("------------------------")
 
-# delete unwanted data - just keep date, open, high, low, close
-for line in bars:
-    del line[5:]
+def main(start_date, end_date):
+    current_date = start_date
+    
+    while current_date <= end_date:
+        try:
+            next_date = current_date + timedelta(days=1)
+            candles = get_candles(current_date, next_date)
+            
+            if len(candles) < 2:
+                print(f"Not enough candles available for {current_date.date()}. Moving to next day.")
+                current_date = next_date
+                continue
+            
+            print(f"Analyzing candles for {current_date.date()}")
+            analyze_candles(candles)
+            
+            current_date = next_date
+        
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            time.sleep(60)  # Wait for 1 minute before retrying
 
-# option 4 - create a Pandas DataFrame and export to CSV
-btc_df = pd.DataFrame(bars, columns=['date', 'open', 'high', 'low', 'close'])
-btc_df.set_index('date', inplace=True)
-print(btc_df.head())
-# export DataFrame to csv
-btc_df.to_csv('btcusdt_ohlc.csv')
+if __name__ == "__main__":
+    if START_DATE and END_DATE:
+        start_date = parse_date(START_DATE)
+        end_date = parse_date(END_DATE)
+    else:
+        parser = argparse.ArgumentParser(description="Analyze trading signals for a specified date range.")
+        parser.add_argument("start_date", type=parse_date, help="Start date in YYYY-MM-DD format")
+        parser.add_argument("end_date", type=parse_date, help="End date in YYYY-MM-DD format")
+        
+        args = parser.parse_args()
+        start_date = args.start_date
+        end_date = args.end_date
+    
+    if start_date > end_date:
+        print("Error: Start date must be before or equal to end date.")
+    else:
+        main(start_date, end_date)
