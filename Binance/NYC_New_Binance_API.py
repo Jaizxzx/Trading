@@ -65,18 +65,20 @@ def analyze_candles(candles):
 
     first_candle = candles[0]
     second_candle = candles[1]
+    
 
     print_candle_info(first_candle, 1)
     print_candle_info(second_candle, 2)
 
     if second_candle['close'] > first_candle['close']:
-        stop_loss = first_candle['open'] - 1  # 1 point below the first candle's open
+        stop_loss = first_candle['close'] #- 1  # 1 point below the first candle's open
         stop_loss_distance = first_candle['open'] - stop_loss
         take_profit = first_candle['open'] + (2 * stop_loss_distance)
 
         print("Signal: BUY")
         print(f"Stop Loss: {stop_loss}")
         print(f"Take Profit: {take_profit}")
+        print(f"Order Open price : {second_candle['close']}")
         print("------------------------")
     else:
         print("No buy signal. Second candle close is not higher than first candle close.")
