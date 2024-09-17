@@ -3,7 +3,7 @@ from binance.enums import *
 import time
 
 # Initialize the Binance client
-client = Client('pr5GIjVdQbms8xLJhjB4aOD1FSuPTKqoy8syXf7cVYYSA0r31rgJ9Fz9nr7ok0Bv', 'DDRDDTHqHAQQTX5D5vNxBxnOlU1RvjS81otZUPUAgUaSZw2i32uwOJ6ACYqTzxcR')
+client = Client('', '')
 
 def get_lot_size(symbol):
     """Fetches the LOT_SIZE filter for a symbol."""
@@ -116,7 +116,7 @@ from binance.lib.utils import config_logging
 
 
 
-spot_client = Client('pr5GIjVdQbms8xLJhjB4aOD1FSuPTKqoy8syXf7cVYYSA0r31rgJ9Fz9nr7ok0Bv', 'DDRDDTHqHAQQTX5D5vNxBxnOlU1RvjS81otZUPUAgUaSZw2i32uwOJ6ACYqTzxcR')
+spot_client = Client('', '')
 
 
 print(spot_client.isolated_margin_account(symbol="USDT"))

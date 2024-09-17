@@ -5,8 +5,8 @@ from binance.client import Client
 from binance.enums import *
 
 # Initialize Binance client
-api_key = 'pr5GIjVdQbms8xLJhjB4aOD1FSuPTKqoy8syXf7cVYYSA0r31rgJ9Fz9nr7ok0Bv'
-api_secret = 'DDRDDTHqHAQQTX5D5vNxBxnOlU1RvjS81otZUPUAgUaSZw2i32uwOJ6ACYqTzxcR'
+api_key = ''
+api_secret = ''
 client = Client(api_key, api_secret)
 
 # Trading parameters
