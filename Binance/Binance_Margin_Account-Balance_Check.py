@@ -12,8 +12,8 @@ from binance.client import Client
 from binance.enums import SIDE_BUY, SIDE_SELL, ORDER_TYPE_MARKET
 
 # Your Testnet API Key and Secret
-api_key = 'xG9dN7c3u703o27DHjr1N8KoUZ2WYhjB1hJ7uizdYfJwIq0OI8mR4PtVDXa5rAEF'
-api_secret = 'xK4H9wh87e2Ues5XuyfxtHIcT37tCSI641cS75l5jqloF7HnJ4du8EfTuSyRGtGi'
+api_key = 'qpUumn3rfEvFXywYS2DCq4rfndL1tjgP9hapNXX2blf6PmAMInRTqhz0J2B5T58o'
+api_secret = 'V5H8jFNqzKb6wHqWrIljXrr8Y5KjguSr23oNCLQLq6PoIyrtiyUWIkOrl77dd5n0'
 
 # Initialize Binance Client for Testnet
 client = Client(api_key, api_secret, testnet=True)
