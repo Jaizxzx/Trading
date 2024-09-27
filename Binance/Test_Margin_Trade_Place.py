@@ -1,9 +1,9 @@
-'''from binance.client import Client
+from binance.client import Client
 from binance.enums import *
 import time
-
+from keys import api, secret
 # Initialize the Binance client
-client = Client('', '')
+client = Client(api, secret)
 
 def get_lot_size(symbol):
     """Fetches the LOT_SIZE filter for a symbol."""
@@ -109,28 +109,3 @@ def isolated_margin_trade_example():
 
 if __name__ == "__main__":
     isolated_margin_trade_example()
-'''
-'''
-from binance.spot import Spot as Client
-from binance.lib.utils import config_logging
-
-
-
-spot_client = Client('', '')
-
-
-print(spot_client.isolated_margin_account(symbol="USDT"))
-
-'''
-
-import logging
-from binance.spot import Spot as Client
-from binance.lib.utils import config_logging
-
-config_logging(logging, logging.DEBUG)
-
-# historical_trades requires api key in request header
-spot_client = Client(base_url="https://testnet.binance.vision")
-
-logging.info(spot_client.historical_trades("BTCUSDT"))
-logging.info(spot_client.historical_trades("BTCUSDT", limit=1, fromId="10"))

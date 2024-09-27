@@ -1,10 +1,10 @@
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
 import time
-
+from keys import testnet_api , testnet_secret
 # Initialize Binance testnet client
-api_key = 'xG9dN7c3u703o27DHjr1N8KoUZ2WYhjB1hJ7uizdYfJwIq0OI8mR4PtVDXa5rAEF'
-api_secret = 'xK4H9wh87e2Ues5XuyfxtHIcT37tCSI641cS75l5jqloF7HnJ4du8EfTuSyRGtGi'
+api_key = testnet_api
+api_secret = testnet_secret
 client = Client(api_key, api_secret, testnet=True)
 
 def get_symbol_info(symbol):

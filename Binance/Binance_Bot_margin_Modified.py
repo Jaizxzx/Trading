@@ -1,10 +1,12 @@
 from keys import api, secret
 from binance.um_futures import UMFutures
 import pandas as pd
+import binance
 from time import sleep
 from binance.error import ClientError
 from datetime import datetime, time, timedelta
 import pytz
+from keys import api , secret
 
 client = UMFutures(key=api, secret=secret)
 
@@ -221,26 +223,48 @@ def check_and_place_trades(symbol):
             daily_trade_count += 1
 
 def close_position_and_repay(symbol):
-    # Close the current position
     try:
-        position = client.get_position_risk(symbol=symbol)
-        if position['positionAmt'] != '0':
-            side = "SELL" if float(position['positionAmt']) > 0 else "BUY"
-            quantity = abs(float(position['positionAmt']))
-            place_margin_order(symbol, side, "MARKET", quantity)
-    except ClientError as error:
-        print(f"Error closing position: {error.error_message}")
+        # Get account information
+        account_info = client.account()
+        
+        # Close the current position
+        positions = [position for position in account_info['positions'] if position['symbol'] == symbol]
+        for position in positions:
+            if float(position['positionAmt']) != 0:
+                side = "SELL" if float(position['positionAmt']) > 0 else "BUY"
+                quantity = abs(float(position['positionAmt']))
+                try:
+                    order = client.new_order(
+                        symbol=symbol,
+                        side=side,
+                        type="MARKET",
+                        quantity=quantity
+                    )
+                    print(f"Closed position for {symbol}: {side} {quantity}")
+                    print(f"Order details: {order}")
+                except ClientError as e:
+                    print(f"Error closing position: {e}")
+        
+        # Check if there's any unrealized PNL
+        unrealized_pnl = sum(float(position['unrealizedProfit']) for position in positions)
+        if unrealized_pnl != 0:
+            print(f"Unrealized PNL: {unrealized_pnl} USDT")
+        
+        # Transfer any remaining balance from Futures account to Spot account if needed
+        futures_balance = next((asset for asset in account_info['assets'] if asset['asset'] == 'USDT'), None)
+        if futures_balance and float(futures_balance['walletBalance']) > 0:
+            try:
+                transfer_amount = float(futures_balance['walletBalance'])
+                transfer = client.futures_account_transfer(asset='USDT', amount=transfer_amount, type=2)  # type 2 is from Futures to Spot
+                print(f"Transferred {transfer_amount} USDT from Futures to Spot account")
+            except ClientError as e:
+                print(f"Error transferring funds: {e}")
     
-    # Repay borrowed margin
-    try:
-        borrowed = client.get_margin_borrowed(asset='USDT')
-        if borrowed > 0:
-            repay_margin('USDT', borrowed)
     except ClientError as error:
-        print(f"Error repaying margin: {error.error_message}")
+        print(f"Error in close_position_and_repay: {error.error_message}")
 
 def main():
-    symbol = "BTCUSDT"  # Change this to the desired trading pair
+    symbol = "SUIUSDT"  # Change this to the desired trading pair
     
     while True:
         balance = get_balance_usdt()
@@ -257,9 +281,19 @@ def main():
         check_and_place_trades(symbol)
 
         # Check if any open orders are filled
-        open_orders = client.get_open_orders(symbol=symbol)
-        if not open_orders:
-            close_position_and_repay(symbol)
+        try:
+            # Instead of using get_open_orders(), let's try to get the account information
+            account_info = client.account(recvWindow=6000)
+            open_orders = [order for order in account_info.get('openOrders', []) if order['symbol'] == symbol]
+            
+            if not open_orders:
+                close_position_and_repay(symbol)
+            else:
+                print(f"Open orders for {symbol}: {open_orders}")
+        except ClientError as e:
+            print(f"Error fetching account information: {e}")
+            # Handle the error appropriately, maybe skip this iteration
+            continue
 
         print('Waiting for 5 minutes before next check')
         sleep(300)

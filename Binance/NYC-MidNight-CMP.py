@@ -3,10 +3,10 @@ from datetime import datetime, timedelta
 import argparse
 from binance.client import Client
 from binance.enums import *
-
+from keys import api, secret
 # Initialize Binance client
-api_key = ''
-api_secret = ''
+api_key = api
+api_secret = secret
 client = Client(api_key, api_secret)
 
 # Trading parameters

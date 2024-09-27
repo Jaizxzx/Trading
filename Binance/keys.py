@@ -1,2 +1,18 @@
-api = 'pr5GIjVdQbms8xLJhjB4aOD1FSuPTKqoy8syXf7cVYYSA0r31rgJ9Fz9nr7ok0Bv'
-secret ='DDRDDTHqHAQQTX5D5vNxBxnOlU1RvjS81otZUPUAgUaSZw2i32uwOJ6ACYqTzxcR' 
+''' 
+Binance API Keys with all the following options enabled:
+
+Enable Reading
+Enable Spot & Margin Trading
+Enable Margin Loan, Repay & Transfer
+Enable Futures
+Permits Universal Transfer
+'''
+
+# Binance API Keys
+
+api = ''
+secret ='' 
+
+#Binance Testnet API Keys for Futures 
+testnet_api = ''
+testnet_secret = ''

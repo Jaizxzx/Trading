@@ -3,10 +3,10 @@ from datetime import datetime, timedelta
 from binance.client import Client
 from binance.enums import *
 import pytz
-
+from keys import api, secret
 # Initialize Binance client and API Keys
-api_key = '' # API KEYS REMOVE BEFORE SHARING
-api_secret = '' # API SECRET KEY REMOVE BEFORE SHARING
+api_key = api # API KEYS REMOVE BEFORE SHARING
+api_secret = secret # API SECRET KEY REMOVE BEFORE SHARING
 client = Client(api_key, api_secret)
 
 # Trading parameters
@@ -17,8 +17,8 @@ timeframe = Client.KLINE_INTERVAL_5MINUTE
 ny_tz = pytz.timezone('America/New_York')
 
 # Hardcoded date range
-START_DATE = datetime(2024, 9, 8)
-END_DATE = datetime(2024, 9, 9)
+START_DATE = datetime(2024, 9, 16)
+END_DATE = datetime(2024, 9, 20)
 
 def get_ny_midnight(date):
     # Create a timezone-naive datetime at midnight
