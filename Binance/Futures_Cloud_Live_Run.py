@@ -4,6 +4,7 @@ import pytz
 import time
 from binance.error import ClientError
 from keys import api , secret
+
 # Initialize the UMFutures client
 api_key = api
 api_secret = secret
@@ -14,10 +15,9 @@ pair = "SUIUSDT"
 contract_type = "PERPETUAL"
 interval = "5m"
 qty = 7 # (current_balance*0.8)*leverage/open_price
+balance_perc = 0.8 # 80% of the balance
 leverage = 5
 timezoness = "America/New_York"
-# percentage_leverage (0.8) initially
-
 
 # Set the New York timezone
 ny_timezone = pytz.timezone(timezoness)
@@ -42,7 +42,7 @@ def is_within_trading_hours(current_time):
     current_time = current_time.time()
     if start_time < end_time:
         return start_time <= current_time <= end_time
-    else:  # Handle case where trading window crosses midnight
+    else:  # Handles cases where trading window crosses midnight
         return current_time >= start_time or current_time <= end_time
 
 def get_candle_data(candle):
@@ -69,7 +69,7 @@ def get_balance_usdt():
         )
 
 
-# Placeholder comparison function
+# Comparison function
 def compare_candles(first_candle, second_candle,flag_num_orders):
     print('\nGetting balance...')
     balance = get_balance_usdt()
@@ -91,10 +91,12 @@ def compare_candles(first_candle, second_candle,flag_num_orders):
         open_price = second_candle['close']
         stop_loss = first_candle['high']
         take_profit = round(open_price + 2 * (open_price - stop_loss),4)
+        qty = round(((balance*balance_perc)*leverage)/open_price,2)
         print("Open Price: ", open_price)
         print("Stop Loss: ", stop_loss)
         print("Take Profit: ", take_profit)
-        
+        print("Quantity: ", qty)
+
         resp1 = um_futures_client.new_order(symbol=pair,price = open_price ,side='SELL', type='LIMIT', quantity=qty, leverage=leverage,tp_price=take_profit,sl_price=stop_loss,timeInForce='GTC')
         print(pair, 'SELL', "placing order")
         print(resp1)
@@ -118,9 +120,12 @@ def compare_candles(first_candle, second_candle,flag_num_orders):
         open_price = second_candle['close']
         stop_loss = first_candle['low']
         take_profit = round(open_price + 2 * (open_price - stop_loss),4)
+        qty = round(((balance*balance_perc)*leverage)/open_price,2)
         print("Open Price: ", open_price)
         print("Stop Loss: ", stop_loss)
         print("Take Profit: ", take_profit)
+        print("Quantity: ", qty)
+
         resp1 = um_futures_client.new_order(symbol=pair,price = open_price ,side='BUY', type='LIMIT', quantity=qty, leverage=leverage,tp_price=take_profit,sl_price=stop_loss,timeInForce='GTC')
         print(pair, 'BUY', "placing order")
         flag_num_orders+=1
@@ -140,7 +145,6 @@ def compare_candles(first_candle, second_candle,flag_num_orders):
 
     else:
         print("Error in comparison of first two candles")
-    # Add your comparison logic here
     return resp2, resp3, side,flag_num_orders
 
 def order_status(tp_order, sl_order, initial_signal):
@@ -226,8 +230,6 @@ def main_loop():
                         
                         print("Code reached here after compare_candles !!!!!!!!!!!!!!!!!!!!!!!!!!!")
                         order_placed = True
-                        # first_candle = None #changed
-                        # second_candle = None #changed
                     elif order_placed:
                         # Call the order_status function for all subsequent candles
                         sl_order_fill_status = order_status(tp_order=tp_order, sl_order=sl_order, initial_signal=initial_signal)
@@ -235,33 +237,37 @@ def main_loop():
                             order_placed = False
                     
                     elif sl_order_fill_status:
-                        # Fetch and print the last 5-minute candle OHLC data #changed
-                        latest_klines = um_futures_client.continuous_klines( #changed
-                            pair=pair, #changed
-                            contractType=contract_type, #changed
-                            interval=interval, #changed
-                            limit=1, #changed
-                            endTime=int(now.timestamp() * 1000) #changed
+                        # Fetch and print the last 5-minute candle OHLC data 
+                        latest_klines = um_futures_client.continuous_klines( 
+                            pair=pair, 
+                            contractType=contract_type, 
+                            interval=interval, 
+                            limit=1, 
+                            endTime=int(now.timestamp() * 1000) 
                         )
-                        if latest_klines: #changed
-                            print("\nLatest 5-minute candle after SL order fill status:") #changed
-                            print_candle(latest_klines[0]) #changed
-                            latest_candle = get_candle_data(latest_klines[0]) #changed
-                            print("Latest Candle timestamp :", latest_candle['timestamp']) #changed
-                            print("Latest Candle open :", latest_candle['open']) #changed
-                            print("Latest Candle close :", latest_candle['close']) #changed
-                            print("Latest Candle high :", latest_candle['high']) #changed
-                            print("Latest Candle low :", latest_candle['low']) #changed
+                        if latest_klines: 
+                            print("\nLatest 5-minute candle after SL order fill status:") 
+                            print_candle(latest_klines[0]) 
+                            latest_candle = get_candle_data(latest_klines[0]) 
+                            print("Latest Candle timestamp :", latest_candle['timestamp']) 
+                            print("Latest Candle open :", latest_candle['open']) 
+                            print("Latest Candle close :", latest_candle['close']) 
+                            print("Latest Candle high :", latest_candle['high']) 
+                            print("Latest Candle low :", latest_candle['low']) 
                             
                             if initial_signal == 'SELL' and flag_num_orders == 1:
                                 open_price = latest_candle['high']
                                 stop_loss = latest_candle['low']
                                 take_profit = round(open_price + 2 * (open_price - stop_loss),4)
+                                balance = get_balance_usdt()
+                                qty = round(((balance*balance_perc)*leverage)/open_price,2)
                                 print("Initial Signal was SELL")
                                 print("Placing Long Flip order")
                                 print("open_price:", open_price)
                                 print("stop_loss:", stop_loss)
                                 print("take_profit:", take_profit)
+                                print("Quantity: ", qty)
+
                                 resp1 = um_futures_client.new_order(symbol=pair,price = open_price ,side='BUY', type='LIMIT', quantity=qty, leverage=leverage,tp_price=take_profit,sl_price=stop_loss,timeInForce='GTC')
                                 print(pair, 'Flip BUY', "placing order")
                                 print(resp1)
@@ -277,11 +283,15 @@ def main_loop():
                                 open_price = latest_candle['low']
                                 stop_loss = latest_candle['high']
                                 take_profit = round(open_price + 2 * (open_price - stop_loss),4)
+                                balance = get_balance_usdt()
+                                qty = round(((balance*balance_perc)*leverage)/open_price,2)
                                 print("Initial Signal was BUY")
                                 print("Placing Short Flip order")
                                 print("open_price:", open_price)
                                 print("stop_loss:", stop_loss)
                                 print("take_profit:", take_profit)
+                                print("Quantity: ", qty)
+
                                 resp1 = um_futures_client.new_order(symbol=pair,price = open_price ,side='SELL', type='LIMIT', quantity=qty, leverage=leverage,tp_price=take_profit,sl_price=stop_loss,timeInForce='GTC')
                                 print(pair, 'Flip SELL', "placing order")
                                 print(resp1)
@@ -310,8 +320,8 @@ def main_loop():
                 print(f"An error occurred: {e}")
                 time.sleep(60)
         else:
-            first_candle = None #changed
-            second_candle = None #changed
+            first_candle = None 
+            second_candle = None 
             flag_num_orders = 0
             print("Outside trading hours. Checking again in 60 seconds.")
             time.sleep(60)
