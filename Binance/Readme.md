@@ -24,6 +24,7 @@ This Python script implements an automated trading bot for cryptocurrency future
 - datetime
 - pytz
 - time
+- math
 
 ## Configuration
 
