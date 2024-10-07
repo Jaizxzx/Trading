@@ -4,6 +4,7 @@ import pytz
 import time
 from binance.error import ClientError
 from keys import api , secret
+import math
 
 # Initialize the UMFutures client
 api_key = api
@@ -91,7 +92,7 @@ def compare_candles(first_candle, second_candle,flag_num_orders):
         open_price = second_candle['close']
         stop_loss = first_candle['high']
         take_profit = round(open_price + 2 * (open_price - stop_loss),4)
-        qty = round(((balance*balance_perc)*leverage)/open_price,2)
+        qty = math.floor(((balance*balance_perc)*leverage)/open_price)
         print("Open Price: ", open_price)
         print("Stop Loss: ", stop_loss)
         print("Take Profit: ", take_profit)
@@ -120,7 +121,7 @@ def compare_candles(first_candle, second_candle,flag_num_orders):
         open_price = second_candle['close']
         stop_loss = first_candle['low']
         take_profit = round(open_price + 2 * (open_price - stop_loss),4)
-        qty = round(((balance*balance_perc)*leverage)/open_price,2)
+        qty = math.floor(((balance*balance_perc)*leverage)/open_price)
         print("Open Price: ", open_price)
         print("Stop Loss: ", stop_loss)
         print("Take Profit: ", take_profit)
@@ -260,7 +261,7 @@ def main_loop():
                                 stop_loss = latest_candle['low']
                                 take_profit = round(open_price + 2 * (open_price - stop_loss),4)
                                 balance = get_balance_usdt()
-                                qty = round(((balance*balance_perc)*leverage)/open_price,2)
+                                qty = math.floor(((balance*balance_perc)*leverage)/open_price)
                                 print("Initial Signal was SELL")
                                 print("Placing Long Flip order")
                                 print("open_price:", open_price)
@@ -284,7 +285,7 @@ def main_loop():
                                 stop_loss = latest_candle['high']
                                 take_profit = round(open_price + 2 * (open_price - stop_loss),4)
                                 balance = get_balance_usdt()
-                                qty = round(((balance*balance_perc)*leverage)/open_price,2)
+                                qty = math.floor(((balance*balance_perc)*leverage)/open_price)
                                 print("Initial Signal was BUY")
                                 print("Placing Short Flip order")
                                 print("open_price:", open_price)
